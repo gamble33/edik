@@ -1,11 +1,13 @@
-use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
-use chrono::NaiveDateTime;
+use edik::unwrap_or_exit;
 
 fn main() {
     let dir_path = "photos/";
-
-    let files = std::fs::read_dir(dir_path).unwrap();
+    let files = std::fs::read_dir(dir_path).unwrap_or_else(|err| {
+        println!("Couldn't find specified directory: {}", dir_path);
+        std::process::exit(0);
+    });
+    let re_naive_date = unwrap_or_exit!(regex::Regex::new(r#"^[0-9]{4}-[0-9]{2}-[0-9]{2}"#));
+    let re_correct_data_fmt = unwrap_or_exit!(regex::Regex::new(r#"^[0-9]{4}-[0-9]{2}-[0-9]2 #[1-9]+"#));
 
     // jpeg, mov, mp4, png
     files.for_each(|f_res| {
@@ -18,13 +20,27 @@ fn main() {
             }
         };
         let name = f.file_name();
-        let date_created = match edik::get_file_creation_date(f){
-            Ok(date) => date,
-            Err(err) => {
-                println!("Error: Please report this to maintainers of edik, {}", err);
+        if re_correct_data_fmt.is_match(match name.to_str() {
+            Some(s) => s,
+            None => {
+                println!("Can't parse os string");
+                std::process::exit(1);
+            }
+        }) { return; }
+
+        let date_created = unwrap_or_exit!(edik::get_file_creation_date(&f));
+        let date_string = match re_naive_date.find(&date_created.to_string()) {
+            Some(ma) => ma.as_str().to_owned(),
+            None => {
+                println!("Couldn't parse naive date, please report this to maintainers of edik.");
                 std::process::exit(1);
             }
         };
-        println!("{:?}: {:?}", name, date_created);
+        let mut new_file_path = String::new();
+        new_file_path.push_str(dir_path);
+        new_file_path.push_str(&date_string);
+        new_file_path.push_str(".png");
+        std::fs::rename(f.path(), new_file_path);
+        println!("{:?} -> {:?}", name, date_string);
     });
 }
