@@ -1,0 +1,13 @@
+/target
+debug/
+target/
+photos/
+
+Cargo.lock
+
+**/*rs.bk
+.pdb
+
+.idea/
+
+
