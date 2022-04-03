@@ -1,4 +1,8 @@
 use std::error::Error;
+use std::ffi::OsStr;
+
+pub const RE_NAIVE_DATE: &str = r#"^[0-9]{4}-[0-9]{2}-[0-9]{2}"#;
+pub const RE_CORRECT_DATA_FMT: &str = r#"^[0-9]{4}-[0-9]{2}-[0-9]{2} #[0-9]+"#;
 
 #[macro_export]
 macro_rules! unwrap_or_exit {
@@ -11,6 +15,57 @@ macro_rules! unwrap_or_exit {
             }
         }
     };
+}
+
+#[derive(Debug)]
+pub struct FileDate {
+    path: String,
+    duration: i64,
+}
+
+impl FileDate {
+    pub fn from_name(path: String) -> Option<FileDate> {
+        let mut y = String::new();
+        let mut m = String::new();
+        let mut d = String::new();
+        let mut string_iter = path.chars();
+        y.push(string_iter.next()?);
+        y.push(string_iter.next()?);
+        y.push(string_iter.next()?);
+        y.push(string_iter.next()?);
+        string_iter.next();
+        m.push(string_iter.next()?);
+        m.push(string_iter.next()?);
+        string_iter.next();
+        d.push(string_iter.next()?);
+        d.push(string_iter.next()?);
+        let date = chrono::NaiveDate::from_ymd(
+            unwrap_or_exit!(y.parse::<i32>()),
+            unwrap_or_exit!(m.parse::<u32>()),
+            unwrap_or_exit!(d.parse::<u32>())
+        ).and_hms(0, 0, 0);
+        Some(FileDate {
+            path,
+            duration: date.timestamp(),
+        })
+    }
+}
+
+pub fn get_file_name(f: &std::fs::DirEntry) -> String {
+    match f.file_name().to_str() {
+        Some(s) => s.to_owned(),
+        None => {
+            println!("Error: Please report this to maintainers of edik");
+            println!("Couldn't parse OsString when reading file name");
+            std::process::exit(1);
+        }
+    }
+}
+
+pub fn get_file_extension(path: &str) -> Option<&str> {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(OsStr::to_str)
 }
 
 pub fn btime_to_naive_date(duration: std::time::Duration) -> chrono::NaiveDateTime {
