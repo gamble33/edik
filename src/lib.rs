@@ -19,8 +19,9 @@ macro_rules! unwrap_or_exit {
 
 #[derive(Debug)]
 pub struct FileDate {
-    path: String,
+    pub path: String,
     pub duration: i64,
+    pub new_path: String,
 }
 
 impl FileDate {
@@ -47,15 +48,34 @@ impl FileDate {
         Some(FileDate {
             path,
             duration: date.timestamp(),
+            new_path: String::new(),
         })
     }
 
     pub fn from_date(path: String, date: chrono::NaiveDateTime) -> FileDate {
         FileDate {
             path,
-            duration: date.timestamp()
+            duration: date.timestamp(),
+            new_path: String::new(),
         }
     }
+}
+
+pub fn build_date_file_path(path: &str, duration: i64, index: u32) -> String {
+    let date = btime_to_naive_date(duration).to_string();
+    let extension = match get_file_extension(&path) {
+        Some(p) => p,
+        None => {
+            println!("Couldn't get extension of file {}", path);
+            std::process::exit(1);
+        }
+    };
+    let mut new_path: String  = String::new();
+    new_path.push_str(&date);
+    new_path.push_str(" #");
+    new_path.push_str(&index.to_string());
+    new_path.push_str(extension);
+    new_path
 }
 
 pub fn get_file_name(f: &std::fs::DirEntry) -> String {
@@ -75,7 +95,19 @@ pub fn get_file_extension(path: &str) -> Option<&str> {
         .and_then(OsStr::to_str)
 }
 
-pub fn btime_to_naive_date(duration: std::time::Duration) -> chrono::NaiveDateTime {
+pub fn btime_to_naive_date(duration: i64) -> chrono::NaiveDateTime {
+    let unix_epoch_time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    chrono::NaiveDateTime::from_timestamp(
+        (unix_epoch_time - (duration as u64)) as i64,
+        0u32
+    )
+}
+
+pub fn duration_to_naive_date(duration: std::time::Duration) -> chrono::NaiveDateTime {
     let unix_epoch_time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -96,6 +128,6 @@ pub fn get_file_creation_date(f: &std::fs::DirEntry) -> Result<chrono::NaiveDate
         .elapsed()
         .unwrap();
 
-    let date_created = btime_to_naive_date(time_stamp);
+    let date_created = duration_to_naive_date(time_stamp);
     Ok(date_created)
 }
