@@ -43,23 +43,19 @@ fn main() {
                 std::process::exit(0);
             }
         };
-        let mut new_file_path = String::new();
-        new_file_path.push_str(dir_path);
-        new_file_path.push_str(&date_string);
-        new_file_path.push_str(" #");
-        new_file_path.push_str(&count.to_string());
-        new_file_path.push_str(".png");
 
-        count += 1;
-        // TODO: Check if file names match, and number them (temporarily) accordingly
-        std::fs::rename(f.path(), &new_file_path);
+        file_dates.push(edik::FileDate::from_date(name, date_created));
 
-
-        println!("{:?} -> {:?}", name, &new_file_path);
     });
 
-    file_dates.into_iter().for_each(|fd| {
-        println!("{:?}", fd);
-    })
+    for i in 0..file_dates.len()-1 {
+        println!("{:?}", file_dates[i]);
+    }
 
+    file_dates.sort_by(|a, b| a.duration.partial_cmp(&b.duration).unwrap());
+
+    println!("\nSorted:");
+    for i in 0..file_dates.len()-1 {
+        println!("{:?}", file_dates[i]);
+    }
 }

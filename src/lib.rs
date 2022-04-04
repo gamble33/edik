@@ -20,7 +20,7 @@ macro_rules! unwrap_or_exit {
 #[derive(Debug)]
 pub struct FileDate {
     path: String,
-    duration: i64,
+    pub duration: i64,
 }
 
 impl FileDate {
@@ -48,6 +48,13 @@ impl FileDate {
             path,
             duration: date.timestamp(),
         })
+    }
+
+    pub fn from_date(path: String, date: chrono::NaiveDateTime) -> FileDate {
+        FileDate {
+            path,
+            duration: date.timestamp()
+        }
     }
 }
 
